@@ -53,9 +53,7 @@ SmbInterface::SmbInterface() {
 
   // Constraints
   if (modelSettings_.activateObstacleAvoidance_) {
-    const std::string obstacleFile = taskFilePath + "/obstacles.info";
     ObstaclesParameters obstaclesParam;
-    obstaclesParam.loadSettings(obstacleFile, "obstacles_parameters");
     smbSynchronizedModulePtr_.reset(new SmbSynchronizedModule(std::move(obstaclesParam)));
     constraintPtr_.reset(new SmbConstraints(*smbSynchronizedModulePtr_));
   } else {

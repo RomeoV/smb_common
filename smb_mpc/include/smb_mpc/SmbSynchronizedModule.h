@@ -32,6 +32,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ocs2_oc/synchronized_module/SolverSynchronizedModule.h>
 
 #include "smb_mpc/ObstaclesParameters.h"
+#include <geometry_msgs/PoseArray.h>
+#include <ros/package.h>
+#include <ros/ros.h>
 
 namespace smb_path_following {
 
@@ -41,20 +44,54 @@ public:
   using vector_t = ocs2::vector_t;
   using matrix_t = ocs2::matrix_t;
 
-  SmbSynchronizedModule(ObstaclesParameters obstaclesParameters)
-  : obstaclesParameters_(std::move(obstaclesParameters)) {}
+    SmbSynchronizedModule(ObstaclesParameters obstaclesParameters) {
+      sub_ = nh_.subscribe("mapGuy/obstacles", 1000, &SmbSynchronizedModule::chatterCallback, this);
+    }
 
   ~SmbSynchronizedModule() override = default;
 
   void preSolverRun(scalar_t initTime, scalar_t finalTime, const vector_t& currentState,
-                    const ocs2::CostDesiredTrajectories& costDesiredTrajectory) override {}
+                    const ocs2::CostDesiredTrajectories& costDesiredTrajectory) override {
+
+    // new approach
+    // read from publisher: mapGuy/obstacles
+    this->obstaclesParameters_ = obstaclesParameters2_;
+
+    // delete this
+    // const std::string packagePath = ros::package::getPath("smb_mpc");
+    // const std::string taskFilePath = packagePath + "/config";
+    // const std::string obstacleFile = taskFilePath + "/obstacles.info";
+    // ObstaclesParameters obstaclesParam;
+    // obstaclesParam.loadSettings(obstacleFile, "obstacles_parameters");
+    // this->obstaclesParameters_ = obstaclesParam;
+  }
 
   void postSolverRun(const ocs2::PrimalSolution& primalSolution) override {}
 
   const ObstaclesParameters& getObstaclesParameters() const { return obstaclesParameters_; }
 
+protected:
+    void chatterCallback(const geometry_msgs::PoseArray& msg)
+    {
+      this->obstaclesParameters2_ = ObstaclesParameters();
+      this->obstaclesParameters2_.numberOfObstacles_ = msg.poses.size();
+      this->obstaclesParameters2_.vectorOfObstacles_.resize(msg.poses.size()*4);
+
+      for (size_t i = 0; i < msg.poses.size(); i+=4) {
+        auto pose = msg.poses[i];
+        this->obstaclesParameters2_.vectorOfObstacles_[i+0] = 0.3;  // radius
+        this->obstaclesParameters2_.vectorOfObstacles_[i+1] = 1.;  //  height
+        this->obstaclesParameters2_.vectorOfObstacles_[i+2] = pose.position.x;
+        this->obstaclesParameters2_.vectorOfObstacles_[i+3] = pose.position.y;
+      }
+    }
+
+
  private:
   ObstaclesParameters obstaclesParameters_;
+  ObstaclesParameters obstaclesParameters2_;
+  ros::NodeHandle nh_;
+  ros::Subscriber sub_;
 };
 
 }  // namespace smb_path_following

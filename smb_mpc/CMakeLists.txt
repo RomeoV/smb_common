@@ -68,6 +68,14 @@ target_link_libraries(${PROJECT_NAME}_node
   ${catkin_LIBRARIES}
   )
 
+add_executable(obstacle_publisher
+  src/ObstaclePublisher.cpp
+)
+target_link_libraries(obstacle_publisher
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+  )
+
 #############
 ## Install ##
 #############
